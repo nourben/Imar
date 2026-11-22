@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invitation dîner IMAR</title>
+<style>
+@font-face{font-family:"MontInv";src:url(fonts/Montserrat-SemiBold.ttf) format("truetype");font-weight:600}
+:root{color-scheme:light dark;--bg:light-dark(#e9edf3,#0d1524);--panel:light-dark(#fff,#16213a);--ink:light-dark(#14223d,#e8edf6);--mut:light-dark(#5b6880,#9aa8c2);--line:light-dark(#d5dce7,#2a3858);--gold:#c99a3f;--navy:#1d4884}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif;overflow-x:clip}
+.bar{position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:1px solid var(--line);box-shadow:0 2px 12px rgb(0 0 0/.06)}
+.barin{max-width:1100px;margin:0 auto;padding:12px max(4vw,14px);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:10px 12px;align-items:end}
+h1{grid-column:1/-1;margin:0;font-size:17px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+h1 small{font-weight:500;color:var(--mut);font-size:13px}
+label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}
+input[type=text]{width:100%;height:44px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font:600 16px "MontInv",sans-serif;color:var(--ink);background:var(--bg)}
+input[type=text]:focus{outline:2px solid var(--gold);outline-offset:1px;border-color:transparent}
+.acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button,.file{height:44px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:600 14px system-ui,sans-serif;padding:0 14px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button.pri{background:var(--navy);border-color:var(--navy);color:#fff}
+button:disabled{opacity:.6;cursor:wait}
+.size button{width:44px;justify-content:center;padding:0}
+.opts{grid-column:1/-1;display:flex;gap:10px 18px;flex-wrap:wrap;align-items:center;font-size:14px}
+.opts label{display:inline-flex;gap:6px;align-items:center;margin:0;color:var(--ink);font-size:14px}
+.file input{display:none}.file{font-size:13px;height:36px}
+.msg{grid-column:1/-1;font-size:13px;color:var(--mut);min-height:1.2em;margin:0}
+.msg.ok{color:light-dark(#1d7a46,#6fd39b)}.msg.ko{color:light-dark(#b42318,#ff8f85)}
+main{max-width:1100px;margin:0 auto;padding:22px max(4vw,14px) 60px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+figure{margin:0}
+.sheet{position:relative;border-radius:4px;overflow:hidden;box-shadow:0 10px 30px rgb(10 25 60/.25);background:#1d4c96}
+.sheet canvas,.sheet svg{display:block;width:100%;height:auto}
+.sheet svg{position:absolute;inset:0;height:100%}
+.sheet svg text{font-family:"MontInv",sans-serif;font-weight:600;fill:var(--navy)}
+.hit{cursor:text}
+figure.first .sheet{outline:2px solid var(--gold);outline-offset:4px}
+figcaption{font-size:13px;color:var(--mut);margin-top:8px;text-align:center}
+@media(max-width:700px){.barin{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.acts{grid-column:1/-1}.acts .pri{flex:1;justify-content:center}main{grid-template-columns:minmax(0,1fr);max-width:520px}}
+</style>
+</head>
+<body>
+<header class="bar"><div class="barin">
+  <h1>Invitation — Dîner caritatif IMAR <small>Samedi 12 décembre 2026 · Salle Lyna, Vitry-sur-Seine</small></h1>
+  <div><label for="l1">Ligne 1</label><input id="l1" type="text" autocomplete="off" placeholder="Nom"></div>
+  <div><label for="l2">Ligne 2</label><input id="l2" type="text" autocomplete="off" placeholder="Prénom"></div>
+  <div class="acts">
+    <span class="size"><button id="minus" title="Texte plus petit">A−</button> <button id="plus" title="Texte plus grand">A+</button></span>
+    <button id="clear">Effacer</button>
+    <button id="dl" class="pri" disabled>Exporter en PDF</button>
+  </div>
+  <div class="opts">
+    <label><input type="checkbox" id="light"> Version légère (WhatsApp, e-mail)</label>
+    <label class="file">Changer le recto <input type="file" id="fRecto" accept="application/pdf"></label>
+    <label class="file">Changer le verso <input type="file" id="fVerso" accept="application/pdf"></label>
+  </div>
+  <p id="msg" class="msg" aria-live="polite">Chargement des PDF…</p>
+</div></header>
+
+<main id="pages"></main>
+
+<script src="lib/pdf.min.js"></script>
+<script src="lib/pdf-lib.min.js"></script>
+<script src="lib/fontkit.umd.min.js"></script>
+<script>
+{
+/* ================= RÉGLAGES =================
+   Chaque PDF source = 1 page paysage contenant 2 demi-pages.
+   half: 0 = moitié gauche, 1 = moitié droite. */
+const CONFIG={
+  sources:['pdf/recto.pdf','pdf/verso.pdf'],
+  pages:[
+    {src:0,half:1,label:'Invitation'},
+    {src:0,half:0,label:'Réservation'},
+    {src:1,half:1,label:'Au programme'},
+    {src:1,half:0,label:'Le mot du dîner'}
+  ],
+  namePage:0,                 // index (dans pages) de la page qui reçoit le nom
+  // Position des 2 lignes, en fraction de la demi-page (x depuis la gauche, y = ligne de base depuis le haut)
+  lines:[{x:0.0729,y:0.8188},{x:0.0729,y:0.8565}],
+  maxWidth:0.404,             // largeur max du texte, en fraction de la largeur de la demi-page
+  fontSize:0.02103,           // taille par défaut, en fraction de la hauteur de page (≈ 9 pt)
+  color:[0x1d,0x48,0x84],
+  filePrefix:'Invitation_IMAR',
+  lightDpi:200
+};
+/* ============================================ */
+
+const $=id=>document.getElementById(id);
+const inputs=[$('l1'),$('l2')], msgEl=$('msg');
+const msg=(t,c='')=>{msgEl.textContent=t;msgEl.className='msg '+c};
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+pdfjsLib.GlobalWorkerOptions.workerSrc='lib/pdf.worker.min.js';
+
+let srcBytes=[null,null], srcDocs=[null,null], fontBytes=null, mfont=null;
+let scale=parseFloat(store.get('inv.scale'))||1;   // multiplicateur de la taille par défaut
+let geo=null;   // {W,H} d'une demi-page en points
+const texts=[];
+
+const fitSize=(txt,H,W,font)=>{
+  const base=CONFIG.fontSize*H*scale, max=CONFIG.maxWidth*W;
+  if(!txt||!font) return base;
+  const w=font.widthOfTextAtSize(txt,base);
+  return w>max?Math.max(4,base*max/w):base;
+};
+function renderText(){
+  inputs.forEach((inp,i)=>{
+    if(!texts[i]||!geo) return;
+    const v=inp.value.trim();
+    texts[i].textContent=v;
+    texts[i].setAttribute('font-size',fitSize(v,geo.H,geo.W,mfont).toFixed(2));
+  });
+  store.set('inv.l1',inputs[0].value);store.set('inv.l2',inputs[1].value);store.set('inv.scale',scale);
+}
+
+async function renderSourceCanvas(doc,dpiScale){
+  const page=await doc.getPage(1), vp=page.getViewport({scale:dpiScale});
+  const c=document.createElement('canvas'); c.width=Math.round(vp.width); c.height=Math.round(vp.height);
+  await page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+  return c;
+}
+const cropHalf=(full,half)=>{
+  const w=Math.floor(full.width/2), c=document.createElement('canvas');
+  c.width=w; c.height=full.height;
+  c.getContext('2d').drawImage(full,half*(full.width-w),0,w,full.height,0,0,w,full.height);
+  return c;
+};
+
+async function buildPreview(){
+  msg('Préparation de l\'aperçu…');
+  const p0=await srcDocs[0].getPage(1), v0=p0.getViewport({scale:1});
+  geo={W:v0.width/2,H:v0.height};
+  const targetHalfPx=Math.min(1100,560*(window.devicePixelRatio||1));
+  const s=targetHalfPx/geo.W;
+  const fulls=await Promise.all(srcDocs.map(d=>renderSourceCanvas(d,s)));
+  const main=$('pages'); main.innerHTML=''; texts.length=0;
+  CONFIG.pages.forEach((pg,i)=>{
+    const fig=document.createElement('figure'); if(i===CONFIG.namePage) fig.className='first';
+    const sheet=document.createElement('div'); sheet.className='sheet';
+    sheet.appendChild(cropHalf(fulls[pg.src],pg.half));
+    if(i===CONFIG.namePage){
+      const NS='http://www.w3.org/2000/svg', svg=document.createElementNS(NS,'svg');
+      svg.setAttribute('viewBox',`0 0 ${geo.W} ${geo.H}`);
+      CONFIG.lines.forEach((ln,k)=>{
+        const r=document.createElementNS(NS,'rect');
+        const h=geo.H*0.036;
+        Object.entries({x:ln.x*geo.W-6,y:ln.y*geo.H-h+2,width:CONFIG.maxWidth*geo.W+12,height:h,fill:'transparent',class:'hit'}).forEach(([a,b])=>r.setAttribute(a,b));
+        r.addEventListener('click',()=>inputs[k].focus());
+        const t=document.createElementNS(NS,'text');
+        t.setAttribute('x',ln.x*geo.W); t.setAttribute('y',ln.y*geo.H);
+        svg.append(r,t); texts.push(t);
+      });
+      sheet.appendChild(svg);
+    }
+    const cap=document.createElement('figcaption'); cap.textContent=`Page ${i+1} · ${pg.label}`;
+    fig.append(sheet,cap); main.appendChild(fig);
+  });
+  renderText();
+  msg('Tape le nom et/ou le prénom : ils s\'affichent en direct sur la page 1.');
+  $('dl').disabled=false;
+}
+
+async function loadSource(i,bytes){
+  srcBytes[i]=bytes;
+  srcDocs[i]=await pdfjsLib.getDocument({data:bytes.slice()}).promise;
+}
+
+async function buildPdf(light){
+  const {PDFDocument,rgb}=PDFLib;
+  const out=await PDFDocument.create(); out.registerFontkit(fontkit);
+  out.setTitle('Invitation — Dîner caritatif IMAR');
+  const font=await out.embedFont(fontBytes,{subset:true});
+  const {W,H}=geo;
+  let draw;
+  if(light){
+    const fulls=await Promise.all(srcDocs.map(d=>renderSourceCanvas(d,CONFIG.lightDpi/72)));
+    const jpg=c=>new Promise(r=>c.toBlob(b=>b.arrayBuffer().then(r),'image/jpeg',0.85));
+    draw=async(page,pg)=>{const img=await out.embedJpg(await jpg(cropHalf(fulls[pg.src],pg.half)));page.drawImage(img,{x:0,y:0,width:W,height:H})};
+  }else{
+    // Qualité d'origine : la page source est intégrée une seule fois puis décalée (aucune recompression)
+    const emb=[];
+    for(let i=0;i<2;i++){const src=await PDFDocument.load(srcBytes[i]);[emb[i]]=await out.embedPdf(src,[0])}
+    draw=async(page,pg)=>page.drawPage(emb[pg.src],{x:-pg.half*W,y:0,width:2*W,height:H});
+  }
+  for(let i=0;i<CONFIG.pages.length;i++){
+    const pg=CONFIG.pages[i], page=out.addPage([W,H]);
+    await draw(page,pg);
+    if(i===CONFIG.namePage) inputs.forEach((inp,k)=>{
+      const v=inp.value.trim(); if(!v) return;
+      page.drawText(v,{x:CONFIG.lines[k].x*W,y:H-CONFIG.lines[k].y*H,size:fitSize(v,H,W,font),font,color:rgb(...CONFIG.color.map(c=>c/255))});
+    });
+  }
+  return new Blob([await out.save()],{type:'application/pdf'});
+}
+
+const slug=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,40);
+function fileName(){
+  const parts=inputs.map(i=>slug(i.value.trim())).filter(Boolean);
+  return CONFIG.filePrefix+(parts.length?'_'+parts.join('_'):'')+'.pdf';
+}
+
+/* --- événements --- */
+inputs[0].value=store.get('inv.l1')||''; inputs[1].value=store.get('inv.l2')||'';
+inputs.forEach(i=>i.addEventListener('input',renderText));
+$('minus').onclick=()=>{scale=Math.max(0.7,+(scale-0.06).toFixed(2));renderText()};
+$('plus').onclick=()=>{scale=Math.min(1.4,+(scale+0.06).toFixed(2));renderText()};
+$('clear').onclick=()=>{inputs.forEach(i=>i.value='');renderText();inputs[0].focus()};
+[['fRecto',0],['fVerso',1]].forEach(([id,i])=>$(id).addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  try{$('dl').disabled=true;await loadSource(i,new Uint8Array(await f.arrayBuffer()));await buildPreview()}
+  catch(err){msg('Impossible de lire ce PDF : '+err.message,'ko')}
+}));
+$('dl').onclick=async e=>{
+  const b=e.currentTarget; b.disabled=true; msg('Création du PDF…');
+  try{
+    const blob=await buildPdf($('light').checked), name=fileName();
+    const url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+    msg(`PDF prêt : ${name} (${(blob.size/1048576).toFixed(1)} Mo)`,'ok');
+  }catch(err){msg('Échec de l\'export : '+(err.message||err),'ko')}
+  finally{b.disabled=false}
+};
+
+/* --- démarrage --- */
+(async()=>{
+  try{
+    const get=async u=>{const r=await fetch(u);if(!r.ok)throw new Error(u+' introuvable');return new Uint8Array(await r.arrayBuffer())};
+    fontBytes=await get('fonts/Montserrat-SemiBold.ttf');
+    const tmp=await PDFLib.PDFDocument.create(); tmp.registerFontkit(fontkit); mfont=await tmp.embedFont(fontBytes);
+    const [r,v]=await Promise.all(CONFIG.sources.map(get));
+    await loadSource(0,r); await loadSource(1,v);
+    await buildPreview();
+  }catch(err){
+    msg((location.protocol==='file:'?'Ouvre la page via GitHub Pages (ou un petit serveur local), pas en double-cliquant le fichier. ':'')+'Erreur : '+err.message,'ko');
+  }
+})();
+}
+</script>
+</body>
+</html>
