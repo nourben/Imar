@@ -82,7 +82,9 @@ const CONFIG={
   fontSize:0.02103,           // taille par défaut, en fraction de la hauteur de page (≈ 9 pt)
   color:[0x1d,0x48,0x84],
   filePrefix:'Invitation_IMAR',
-  lightDpi:200
+  lightDpi:200,
+  // Compteur d'exports (service gratuit Abacus) — doit être identique dans la page de stats
+  counter:{api:'https://abacus.jasoncameron.dev',ns:'imar-diner-op8dna9v'}
 };
 /* ============================================ */
 
@@ -199,6 +201,14 @@ function fileName(){
   return CONFIG.filePrefix+(parts.length?'_'+parts.join('_'):'')+'.pdf';
 }
 
+/* --- compteur (silencieux : une erreur n'empêche jamais l'export) --- */
+function countExport(light){
+  const {api,ns}=CONFIG.counter;
+  ['pdf-total',light?'pdf-leger':'pdf-complet'].forEach(k=>{
+    try{fetch(`${api}/hit/${ns}/${k}`,{mode:'cors',keepalive:true}).catch(()=>{})}catch(e){}
+  });
+}
+
 /* --- événements --- */
 inputs[0].value=store.get('inv.l1')||''; inputs[1].value=store.get('inv.l2')||'';
 inputs.forEach(i=>i.addEventListener('input',renderText));
@@ -218,6 +228,7 @@ $('dl').onclick=async e=>{
     a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),60000);
     msg(`PDF prêt : ${name} (${(blob.size/1048576).toFixed(1)} Mo)`,'ok');
+    countExport($('light').checked);
   }catch(err){msg('Échec de l\'export : '+(err.message||err),'ko')}
   finally{b.disabled=false}
 };

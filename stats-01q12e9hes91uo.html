@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Stats invitations</title>
+<style>
+:root{color-scheme:light dark;--bg:light-dark(#e9edf3,#0d1524);--panel:light-dark(#fff,#16213a);--ink:light-dark(#14223d,#e8edf6);--mut:light-dark(#5b6880,#9aa8c2);--line:light-dark(#d5dce7,#2a3858);--navy:#1d4884;--gold:#c99a3f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif;display:grid;place-items:start center;min-height:100vh;padding:clamp(20px,6vw,60px) 16px}
+.card{width:min(460px,100%);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;box-shadow:0 10px 30px rgb(10 25 60/.12)}
+h1{margin:0 0 4px;font-size:20px}
+p{margin:0;color:var(--mut);font-size:14px}
+.big{font-size:clamp(56px,16vw,84px);font-weight:800;line-height:1;margin:22px 0 4px;color:var(--navy);font-variant-numeric:tabular-nums}
+@media(prefers-color-scheme:dark){.big{color:#8fb1ea}}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0}
+.row div{border:1px solid var(--line);border-radius:12px;padding:12px}
+.row b{display:block;font-size:26px;font-variant-numeric:tabular-nums}
+.row span{font-size:13px;color:var(--mut)}
+button{height:44px;width:100%;border-radius:10px;border:1px solid var(--navy);background:var(--navy);color:#fff;font:600 15px system-ui,sans-serif;cursor:pointer}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+#st{margin-top:10px;font-size:13px;min-height:1.3em}
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>Invitations générées</h1>
+  <p>Dîner caritatif IMAR · 12 décembre 2026</p>
+  <div class="big" id="total">–</div>
+  <p>PDF exportés au total</p>
+  <div class="row">
+    <div><b id="complet">–</b><span>Qualité d'origine</span></div>
+    <div><b id="leger">–</b><span>Version légère</span></div>
+  </div>
+  <button id="refresh">Actualiser</button>
+  <p id="st"></p>
+</main>
+<script>
+{
+const API='https://abacus.jasoncameron.dev', NS='imar-diner-op8dna9v';
+const KEYS={total:'pdf-total',complet:'pdf-complet',leger:'pdf-leger'};
+const st=document.getElementById('st');
+async function get(k){
+  const r=await fetch(`${API}/get/${NS}/${k}`,{cache:'no-store'});
+  if(r.status===404) return 0;          // pas encore d'export
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return (await r.json()).value||0;
+}
+async function load(){
+  st.textContent='Chargement…';
+  try{
+    const vals=await Promise.all(Object.values(KEYS).map(get));
+    Object.keys(KEYS).forEach((id,i)=>document.getElementById(id).textContent=vals[i].toLocaleString('fr-FR'));
+    st.textContent='Mis à jour à '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){st.textContent='Compteur injoignable pour le moment ('+e.message+'). Réessaie plus tard.'}
+}
+document.getElementById('refresh').onclick=load;
+load();
+}
+</script>
+</body>
+</html>
