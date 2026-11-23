@@ -24,7 +24,8 @@ Chaque modification poussée sur `main` est en ligne 1 à 2 minutes après.
 - **Exporter en PDF** : 4 pages, qualité d'origine (~16 Mo).
 - **Version légère** : pages recalculées en 200 dpi, beaucoup plus petites (pour WhatsApp / e-mail).
 - **Nom du fichier** : `Invitation_IMAR_<ligne1>_<ligne2>.pdf`, seulement ce qui est rempli.
-- **Changer le recto / verso** : charge d'autres PDF sans toucher au dépôt.
+- **Thème** : bouton en haut à droite (clair par défaut, le choix est retenu).
+- **Statistiques** : petit lien en bas de page.
 
 ## Remplacer les PDF par défaut
 
